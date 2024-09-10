@@ -448,10 +448,10 @@ END GROUP
  .debug_abbrev  0x00000000      0x9a0 C:/Program Files (x86)/Atmel/Studio/7.0/Packs/atmel/ATmega_DFP/1.7.374/gcc/dev/at90can128/avr51/crtat90can128.o
  .debug_abbrev  0x000009a0       0xa4 main.o
 
-.debug_line     0x00000000      0x335
+.debug_line     0x00000000      0x338
  *(.debug_line .debug_line.* .debug_line_end)
  .debug_line    0x00000000      0x176 C:/Program Files (x86)/Atmel/Studio/7.0/Packs/atmel/ATmega_DFP/1.7.374/gcc/dev/at90can128/avr51/crtat90can128.o
- .debug_line    0x00000176      0x1bf main.o
+ .debug_line    0x00000176      0x1c2 main.o
 
 .debug_frame    0x00000000       0xc4
  *(.debug_frame)
