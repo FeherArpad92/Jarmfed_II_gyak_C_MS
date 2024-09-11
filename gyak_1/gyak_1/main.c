@@ -1,6 +1,6 @@
 /******************************************************************************
  * Created: 
- * Author : ?rp?d Feh?r
+ * Author : Árpád Fehér
 ******************************************************************************/
  /******************************************************************************
 * Include files
@@ -17,6 +17,15 @@
 #define PD0_ENA_DELAY 20
 #define TRUE 1
 #define FALSE 0
+
+//LCD
+#define LCD_D7 7
+#define LCD_D6 6
+#define LCD_D5 5
+#define LCD_D4 4
+#define LCD_E 3
+#define LCD_RS 2
+ 
 
 /******************************************************************************
 * Constants
@@ -42,6 +51,9 @@ void port_init(void);
 void timer_init(void);
 void external_int_init(void);
 void ad_init(void);
+void lcd_enable_pulse(void);
+void lcd_write_char(char c);
+void lcd_set_cursor_position(uint8_t pos);
 /******************************************************************************
 * Local Function Definitions
 ******************************************************************************/
@@ -67,6 +79,10 @@ void port_init(void)
 	
 	DDRD = 0x00; //PD0 extint
 	PORTD = 0x01; //PD0 extint
+	
+	//LCD
+	DDRC = (1<<LCD_E) | (1<<LCD_RS) | (1<<LCD_D7) | (1<<LCD_D6) | (1<<LCD_D5) | (1<<LCD_D4);
+	PORTC = (0<<LCD_E) | (0<<LCD_RS) | (0<<LCD_D7) | (0<<LCD_D6) | (0<<LCD_D5) | (0<<LCD_D4);
 }
 
 /*****************************************************************************
@@ -110,6 +126,79 @@ void timer_init(void)
 	TIMSK0 = TIMSK0 | (1 << OCIE0A);
 }
 
+void lcd_init(void)
+{
+	_delay_ms(50);
+	
+	//Function set
+	PORTC = (0<<LCD_RS) | (0<<LCD_D7) | (0<<LCD_D6) | (1<<LCD_D5) | (1<<LCD_D4);
+	lcd_enable_pulse();
+	_delay_us(40);
+	
+	//Function set
+	PORTC = (0<<LCD_RS) | (0<<LCD_D7) | (0<<LCD_D6) | (1<<LCD_D5) | (0<<LCD_D4);
+	lcd_enable_pulse();
+	PORTC = (0<<LCD_RS) | (1<<LCD_D7) | (0<<LCD_D6) | (0<<LCD_D5) | (0<<LCD_D4);
+	lcd_enable_pulse();
+	_delay_us(40);
+	
+	//Function set
+	PORTC = (0<<LCD_RS) | (0<<LCD_D7) | (0<<LCD_D6) | (1<<LCD_D5) | (0<<LCD_D4);
+	lcd_enable_pulse();
+	PORTC = (0<<LCD_RS) | (1<<LCD_D7) | (0<<LCD_D6) | (0<<LCD_D5) | (0<<LCD_D4);
+	lcd_enable_pulse();
+	_delay_us(40);
+	
+	//Display ON/OFF control
+	PORTC = (0<<LCD_RS) | (0<<LCD_D7) | (0<<LCD_D6) | (0<<LCD_D5) | (0<<LCD_D4);
+	lcd_enable_pulse();
+	PORTC = (0<<LCD_RS) | (1<<LCD_D7) | (1<<LCD_D6) | (1<<LCD_D5) | (1<<LCD_D4);
+	lcd_enable_pulse();
+	_delay_us(40);
+	
+	//Display clear
+	PORTC = (0<<LCD_RS) | (0<<LCD_D7) | (0<<LCD_D6) | (0<<LCD_D5) | (0<<LCD_D4);
+	lcd_enable_pulse();
+	PORTC = (0<<LCD_RS) | (0<<LCD_D7) | (0<<LCD_D6) | (0<<LCD_D5) | (1<<LCD_D4);
+	lcd_enable_pulse();
+	_delay_ms(2);
+	
+	//Entry mode set
+	PORTC = (0<<LCD_RS) | (0<<LCD_D7) | (0<<LCD_D6) | (0<<LCD_D5) | (0<<LCD_D4);
+	lcd_enable_pulse();
+	PORTC = (0<<LCD_RS) | (0<<LCD_D7) | (1<<LCD_D6) | (1<<LCD_D5) | (0<<LCD_D4);
+	lcd_enable_pulse();
+	_delay_ms(10);
+}
+
+void lcd_enable_pulse(void)
+{
+	PORTC |= (1<<LCD_E);
+	_delay_us(1);
+	PORTC &= ~(1<<LCD_E);
+}
+
+void lcd_write_char(char c)
+{
+	_delay_us(40);
+	PORTC = (c & 0xF0) | (1<<LCD_RS);
+	lcd_enable_pulse();
+	PORTC = ((c & 0x0F)<<4) | (1<<LCD_RS);
+	lcd_enable_pulse();
+}
+
+void lcd_set_cursor_position(uint8_t pos)
+{
+	_delay_us(40);
+	if (pos < 67)
+	{
+		pos = ((1<<LCD_D7) | pos);
+		PORTC = (pos & 0xF0) | (0<<LCD_RS);
+		lcd_enable_pulse();
+		PORTC = ((pos & 0x0F)<<4) | (0<<LCD_RS);
+		lcd_enable_pulse();
+	}
+}
 /******************************************************************************
 * Function:         int main(void)
 * Description:      main function
@@ -123,6 +212,7 @@ int main(void)
 	timer_init();
 	external_int_init();
 	ad_init();
+	lcd_init();
 	sei();
 	
 	//V?gtelen ciklus
@@ -136,6 +226,12 @@ int main(void)
 			if((PINB & (1<<PB0)) == 0 && PB0_pushed == 0)
 			{
 				PORTA ^=0x01;
+				lcd_set_cursor_position(40);
+				lcd_write_char('a');
+				lcd_write_char('b');
+				lcd_write_char('c');
+				lcd_write_char('d');
+				
 				PB0_pushed = 1;
 			}
 			if((PINB & (1<<PB0)) == (1<<PB0) && PB0_pushed == 1) PB0_pushed = 0;
