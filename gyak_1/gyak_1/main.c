@@ -12,20 +12,17 @@
 #include <avr/interrupt.h>
 #include <inttypes.h>
 
+#include "lcd.h"
+
 /******************************************************************************
 * Macros
 ******************************************************************************/
 #define FALSE 0
 #define TRUE 1
 
-//LCD
-#define LCD_D7 7
-#define LCD_D6 6
-#define LCD_D5 5
-#define LCD_D4 4
+//UART 
+#define BAUD9600 51 //Datasheet page 202.
 
-#define LCD_E 3
-#define LCD_RS 2
 
 
 /******************************************************************************
@@ -49,9 +46,9 @@ uint8_t task_10ms = FALSE, task_100ms = FALSE, task_500ms = FALSE;
 void port_init(void);
 void timer_init(void);
 void external_int_init(void);
-void lcd_enable_pulse(void);
-void lcd_init(void);
-void lcd_write_char(char c);
+void uart0_init(uint16_t baud);
+void adc_init(void);
+
 
 /******************************************************************************
 * Local Function Definitions
@@ -105,84 +102,36 @@ void external_int_init(void)
 	EIMSK = (1<<INT0);
 }
 
+
 /******************************************************************************
-* Function:         void lcd_enable_pulse(void)
-* Description:      pulse on E port
+* Function:         void uart0_init(uint16_t baud)
+* Description:      UART0 felkonfigurálása
 * Input:
 * Output:
 * Notes:
 ******************************************************************************/
-void lcd_enable_pulse(void)
+void uart0_init(uint16_t baud)
 {
-	PORTC = PORTC | (1<<LCD_E);
-	_delay_us(1);
-	PORTC = PORTC & ~(1<<LCD_E);
+	/* Set baud rate */
+	UBRR0H = (unsigned char) (baud>>8);
+	UBRR0L = (unsigned char) baud;
+	/* Set frame format: 8data, no parity & 1 stop bits */
+	UCSR0C = (0<<UMSEL0) | (0<<UPM0) | (1<<USBS0) | (1<<UCSZ1) | (1<<UCSZ0);
+	/* Enable receiver and transmitter */
+	UCSR0B = (1<<RXEN0) | (1<<TXEN0) | (1<<RXCIE0);
 }
 
 /******************************************************************************
-* Function:         void lcd_init(void)
-* Description:      LCD inicializálása
+* Function:         void adc_init(void)
+* Description:      ADC konfigurálása
 * Input:
 * Output:
 * Notes:
 ******************************************************************************/
-void lcd_init(void)
+void adc_init(void)
 {
-	_delay_ms(50);
-	PORTC = (0<<LCD_RS) | (0<<LCD_D7) | (0<<LCD_D6) | (1<<LCD_D5) | (1<<LCD_D4);
-	lcd_enable_pulse();
-	_delay_us(40);
-	
-	PORTC = (0<<LCD_RS) | (0<<LCD_D7) | (0<<LCD_D6) | (1<<LCD_D5) | (0<<LCD_D4);
-	lcd_enable_pulse();
-	PORTC = (0<<LCD_RS) | (1<<LCD_D7) | (0<<LCD_D6) | (0<<LCD_D5) | (0<<LCD_D4);
-	lcd_enable_pulse();
-	_delay_us(40);
-	
-	PORTC = (0<<LCD_RS) | (0<<LCD_D7) | (0<<LCD_D6) | (1<<LCD_D5) | (0<<LCD_D4);
-	lcd_enable_pulse();
-	PORTC = (0<<LCD_RS) | (1<<LCD_D7) | (0<<LCD_D6) | (0<<LCD_D5) | (0<<LCD_D4);
-	lcd_enable_pulse();
-	_delay_us(40);
-	
-	//display_ON/OFF control
-	PORTC = (0<<LCD_RS) | (0<<LCD_D7) | (0<<LCD_D6) | (0<<LCD_D5) | (0<<LCD_D4);
-	lcd_enable_pulse();
-	PORTC = (0<<LCD_RS) | (1<<LCD_D7) | (1<<LCD_D6) | (1<<LCD_D5) | (1<<LCD_D4);
-	lcd_enable_pulse();
-	_delay_us(40);
-	
-	//display clear
-	PORTC = (0<<LCD_RS) | (0<<LCD_D7) | (0<<LCD_D6) | (0<<LCD_D5) | (0<<LCD_D4);
-	lcd_enable_pulse();
-	PORTC = (0<<LCD_RS) | (0<<LCD_D7) | (0<<LCD_D6) | (0<<LCD_D5) | (1<<LCD_D4);
-	lcd_enable_pulse();
-	_delay_ms(2);
-	
-	//mode set
-	PORTC = (0<<LCD_RS) | (0<<LCD_D7) | (0<<LCD_D6) | (0<<LCD_D5) | (0<<LCD_D4);
-	lcd_enable_pulse();
-	PORTC = (0<<LCD_RS) | (0<<LCD_D7) | (1<<LCD_D6) | (1<<LCD_D5) | (0<<LCD_D4);
-	lcd_enable_pulse();
-	_delay_ms(10);
-	
-}
-
-/******************************************************************************
-* Function:         void lcd_write_char(char c)
-* Description:      karakter megjelenítése
-* Input:
-* Output:
-* Notes:
-******************************************************************************/
-void lcd_write_char(char c)
-{
-	_delay_us(40);
-	PORTC = (c & 0xF0) | (1<<LCD_RS);
-	lcd_enable_pulse();
-	
-	PORTC = ((c & 0x0F)<<4) | (1<<LCD_RS);
-	lcd_enable_pulse();
+	ADMUX = 0;
+	ADCSRA = (1<<ADEN) | (1<<ADIE) | (1<<ADPS2) | (1<<ADPS1) | (1<<ADPS0);
 }
 
 /******************************************************************************
@@ -197,8 +146,10 @@ int main(void)
 	port_init();
 	timer_init();
 	external_int_init();
-	sei();
+	uart0_init(BAUD9600);
 	lcd_init();
+	sei();
+	
 	
     /* Replace with your application code */
     while (1) 
@@ -215,13 +166,8 @@ int main(void)
 		}
 		if(task_500ms)
 		{
-			char string[] = "szoveg";
-			uint8_t i=0;
-			while(string[i] != 0)
-			{
-				lcd_write_char(string[i]);
-				i++;
-			} 
+			//lcd_set_cursor_position(0);
+			//lcd_write_string("valami");
 			
 			PORTF ^=(1<<PF2);
 			task_500ms=FALSE;
@@ -243,4 +189,10 @@ ISR(TIMER0_COMP_vect) //timer CTC interrupt
 ISR(INT0_vect) //extint 0 interrput
 {
 	PORTA = PORTA ^ 0x01;
+}
+
+ISR(USART0_RX_vect)
+{
+	char c = UDR0;
+	lcd_write_char(c);
 }
