@@ -12,6 +12,7 @@
 #include <avr/delay.h>
 
 #include <inttypes.h>
+#include "lcd.h"
 
 /******************************************************************************
 * Macros
@@ -19,13 +20,8 @@
 #define TRUE 1
 #define FALSE 0
 
-//LCD
-#define LCD_D7 7
-#define LCD_D6 6
-#define LCD_D5 5
-#define LCD_D4 4
-#define LCD_E 3
-#define LCD_RS 2
+//UART
+#define BAUD9600 51
 
 /******************************************************************************
 * Constants
@@ -48,9 +44,9 @@ uint16_t timer_cnt=0;
 void port_init(void);
 void timer_init(void);
 void external_int_init(void);
-void lcd_enable_pulse(void);
-void lcd_init(void);
-void lcd_write_char(char c);
+void uart0_init(uint16_t baud);
+
+
 
 /******************************************************************************
 * Local Function Definitions
@@ -103,86 +99,23 @@ void external_int_init(void)
 }
 
 /******************************************************************************
-* Function:         void lcd_enable_pulse(void)
-* Description:      LCD E lábára impulzus generálása
+* Function:         void uart0_init(uint16_t baud)
+* Description:      UART 0 inicializálása
 * Input:
 * Output:
 * Notes:
 ******************************************************************************/
-void lcd_enable_pulse(void)
+void uart0_init(uint16_t baud)
 {
-	PORTC = PORTC | (1<<LCD_E);
-	_delay_us(1);
-	PORTC = PORTC & ~(1<<LCD_E);
+	/* Set baud rate */
+	UBRR0H = (unsigned char) (baud>>8);
+	UBRR0L = (unsigned char) baud;
+	/* Set frame format: 8data, no parity & 1 stop bits */
+	UCSR0C = (0<<UMSEL0) | (0<<UPM0) | (1<<USBS0) | (1<<UCSZ1) | (1<<UCSZ0);
+	/* Enable receiver and transmitter */
+	UCSR0B = (1<<RXEN0) | (1<<TXEN0) | (1<<RXCIE0);
 }
 
-/******************************************************************************
-* Function:         void lcd_init(void)
-* Description:      LCD kijelz? inicializálása
-* Input:
-* Output:
-* Notes:
-******************************************************************************/
-void lcd_init(void)
-{
-	_delay_ms(50);
-	
-	//function set 1
-	PORTC = (0<<LCD_RS) | (0<<LCD_D7) | (0<<LCD_D6) | (1<<LCD_D5) | (1<<LCD_D4);
-	lcd_enable_pulse();
-	_delay_us(40);
-	
-	//function set 2
-	PORTC = (0<<LCD_RS) | (0<<LCD_D7) | (0<<LCD_D6) | (1<<LCD_D5) | (0<<LCD_D4);
-	lcd_enable_pulse();
-	PORTC = (0<<LCD_RS) | (1<<LCD_D7) | (0<<LCD_D6) | (0<<LCD_D5) | (0<<LCD_D4);
-	lcd_enable_pulse();
-	_delay_us(40);
-	
-	//function set 3
-	PORTC = (0<<LCD_RS) | (0<<LCD_D7) | (0<<LCD_D6) | (1<<LCD_D5) | (0<<LCD_D4);
-	lcd_enable_pulse();
-	PORTC = (0<<LCD_RS) | (1<<LCD_D7) | (0<<LCD_D6) | (0<<LCD_D5) | (0<<LCD_D4);
-	lcd_enable_pulse();
-	_delay_us(40);
-	
-	//display on/off control
-	PORTC = (0<<LCD_RS) | (0<<LCD_D7) | (0<<LCD_D6) | (0<<LCD_D5) | (0<<LCD_D4);
-	lcd_enable_pulse();
-	PORTC = (0<<LCD_RS) | (1<<LCD_D7) | (1<<LCD_D6) | (1<<LCD_D5) | (1<<LCD_D4);
-	lcd_enable_pulse();
-	_delay_us(40);
-	
-	//clear display
-	PORTC = (0<<LCD_RS) | (0<<LCD_D7) | (0<<LCD_D6) | (0<<LCD_D5) | (0<<LCD_D4);
-	lcd_enable_pulse();
-	PORTC = (0<<LCD_RS) | (0<<LCD_D7) | (0<<LCD_D6) | (0<<LCD_D5) | (1<<LCD_D4);
-	lcd_enable_pulse();
-	_delay_ms(2);
-	
-	//entry mode set
-	PORTC = (0<<LCD_RS) | (0<<LCD_D7) | (0<<LCD_D6) | (0<<LCD_D5) | (0<<LCD_D4);
-	lcd_enable_pulse();
-	PORTC = (0<<LCD_RS) | (0<<LCD_D7) | (1<<LCD_D6) | (1<<LCD_D5) | (0<<LCD_D4);
-	lcd_enable_pulse();
-	_delay_ms(10);
-}
-
-/******************************************************************************
-* Function:         void lcd_write_char(char c)
-* Description:      karakter kiküldése az LCD kijelz?re
-* Input:
-* Output:
-* Notes:
-******************************************************************************/
-void lcd_write_char(char c)
-{
-	_delay_us(40);
-	PORTC = (c & 0xf0) | (1<<LCD_RS);
-	lcd_enable_pulse();
-	PORTC = ((c & 0x0f)<<4) | (1<<LCD_RS);
-	lcd_enable_pulse();
-}
 /******************************************************************************
 * Function:         int main(void)
 * Description:      main függvény
@@ -196,6 +129,7 @@ int main(void)
 	timer_init();
 	external_int_init();
 	lcd_init();
+	uart0_init(BAUD9600);
 	sei();
     /* Replace with your application code */
     while (1)
@@ -214,13 +148,11 @@ int main(void)
 		
 		if(task_500ms == TRUE)
 		{
-			char szoveg[] = "szoveg a kijelzon";
-			uint8_t i=0;
-			while(szoveg[i] != 0)
-			{
-				lcd_write_char(szoveg[i]);
-				i++;
-			}
+			//char szoveg[] = "szoveg a kijelzon";
+			//lcd_write_string(szoveg);
+			//lcd_set_cursor_position(0);
+			//lcd_clear_display();
+			//lcd_write_string("masik szoveg");
 			
 			PORTF ^= 0x04;
 			task_500ms = FALSE;
@@ -243,5 +175,14 @@ ISR(INT0_vect) //ext 0 interrupt
 {
 	
 	PORTA = PORTA ^ 0x01;
+}
+
+ISR(USART0_RX_vect)
+{
+	char c = UDR0;
+	if(c == 0x7F)
+		lcd_clear_display();
+	else
+		lcd_write_char(c);
 }
 
