@@ -6,3 +6,7 @@ lcd.c
 
 main.c
 
+peripherals.c
+
+uart.c
+
