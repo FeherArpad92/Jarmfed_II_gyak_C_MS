@@ -23,12 +23,9 @@
 #define TRUE 1
 #define FALSE 0
 
-
-
 /******************************************************************************
 * Constants
 ******************************************************************************/
-
 
 /******************************************************************************
 * Global Variables
@@ -37,12 +34,17 @@ uint16_t timer_cnt=0;
 uint8_t timer_task_10ms=0, timer_task_100ms=0, timer_task_500ms=0, timer_task_1s=0;
 uint8_t PB0_pushed = 0, PD0_re_enable_cnt = 0;
 uint16_t ad_value =0;
+
 uint8_t can_rx_data[8];
+uint32_t can_rx_id = 0x00000011;
+uint8_t can_rx_extended_id = FALSE;
+uint8_t can_rx_length;
+uint8_t can_msg_received=FALSE;
+
 uint8_t can_tx_data[8];
 /******************************************************************************
 * External Variables
 ******************************************************************************/
-
 
 /******************************************************************************
 * Local Function Declarations
@@ -97,7 +99,7 @@ int main(void)
 	lcd_init();
 	uart_0_init(BAUD9600);
 	can_init();
-	CAN_ReceiveEnableMob(0, 0x00000001, FALSE, 8);	// enable next reception 
+	CAN_ReceiveEnableMob(0, can_rx_id, can_rx_extended_id, 8);	// enable reception on mob 0
 	sei();
 	
 	//V?gtelen ciklus
@@ -122,13 +124,26 @@ int main(void)
 		
 		if(timer_task_100ms)
 		{
-			char string_for_write[50];
+			char string_for_write_ad[50];
+			char string_for_write_can[50];
 			int voltage = ((uint32_t)ad_value * 5000) / 1024; //feszültség millivoltban
-			sprintf(string_for_write, "%d.%03d V", voltage / 1000, voltage % 1000);
-			uart_0_write_string(string_for_write);
-			uart_0_write_string("\r\n");
+			sprintf(string_for_write_ad, "%d.%03d V", voltage / 1000, voltage % 1000);
 			lcd_set_cursor_position(0);
-			lcd_write_string(string_for_write);
+			lcd_write_string(string_for_write_ad);
+			
+			if(can_msg_received)
+			{
+				sprintf(string_for_write_can, "ID: 0x%lX, Length: %d, DATA:", can_rx_id, can_rx_length);
+				uart_0_write_string(string_for_write_can);
+				for(uint8_t i=0; i<can_rx_length;i++)
+				{
+					sprintf(string_for_write_can, " 0x%X", can_rx_data[i]);
+					uart_0_write_string(string_for_write_can);
+				}
+				uart_0_write_string("\r\n");
+				can_msg_received=0;
+			}
+			
 			
 			uint8_t can_tx_data[8];
 			can_tx_data[0]=ad_value;
@@ -192,7 +207,7 @@ ISR(USART0_RX_vect) //UART adat fogadás megszakítás
 ISR(CANIT_vect) //CAN megszakítás
 {
 	uint8_t i, dlc = 0;
-	PORTA = PORTA ^ (1<<PA7);
+	
 
 	CANPAGE = 0;	// select MOb0, reset FIFO index
 
@@ -204,6 +219,9 @@ ISR(CANIT_vect) //CAN megszakítás
 		for (i=0; i<dlc; i++) can_rx_data[i] = CANMSG;
 		
 		CANSTMOB &= ~(1<<RXOK);	// clear RXOK flag
-		CAN_ReceiveEnableMob(0, 0x00000001, FALSE, 8);	// enable next reception 
+		CAN_ReceiveEnableMob(0, can_rx_id, can_rx_extended_id, 8);	// enable next reception  on mob 0
 	}
+	can_rx_length=dlc;
+	can_msg_received=1;
+	PORTA = PORTA ^ (1<<PA7);
 }
