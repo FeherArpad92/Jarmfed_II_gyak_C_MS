@@ -26,5 +26,7 @@
 * Global Function Declarations
 ******************************************************************************/
 void uart0_init(uint16_t baud);
+void uart_0_transmit(char data);
+void uart_0_write_string(char *c);
 
 #endif /* UART_H_ */

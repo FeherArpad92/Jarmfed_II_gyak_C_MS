@@ -32,10 +32,10 @@
 ******************************************************************************/
 uint16_t timer_cnt=0;
 uint8_t task_10ms = FALSE, task_100ms = FALSE, task_500ms = FALSE;
+uint16_t ad_result;
 /******************************************************************************
 * External Variables
 ******************************************************************************/
-
 
 /******************************************************************************
 * Local Function Declarations
@@ -81,6 +81,7 @@ int main(void)
 	external_int_init();
 	uart0_init(BAUD9600);
 	lcd_init();
+	adc_init();
 	sei();
 	
     /* Replace with your application code */
@@ -93,11 +94,20 @@ int main(void)
 		}
 		if(task_100ms)
 		{
+			char string_for_write_ad[50];
+			sprintf(string_for_write_ad,"%4d",ad_result);
+			lcd_set_cursor_position(0);
+			lcd_write_string(string_for_write_ad);
+			uart_0_write_string(string_for_write_ad);
+			uart_0_write_string("\r\n");
+			
+			ADCSRA |= (1<<ADSC);
 			PORTF ^=(1<<PF1);
 			task_100ms=FALSE;
 		}
 		if(task_500ms)
 		{
+			//uart_0_transmit('a');
 			//lcd_set_cursor_position(0);
 			//lcd_write_string("valami");
 			
@@ -127,4 +137,9 @@ ISR(USART0_RX_vect)
 {
 	char c = UDR0;
 	lcd_write_char(c);
+}
+
+ISR(ADC_vect)
+{
+	ad_result = ADC;
 }

@@ -54,3 +54,31 @@ void uart0_init(uint16_t baud)
 	/* Enable receiver and transmitter */
 	UCSR0B = (1<<RXEN0) | (1<<TXEN0) | (1<<RXCIE0);
 }
+
+/******************************************************************************
+* Function:         void uart_0_transmit(char data)
+* Description:      karakter küldése uarton
+* Input:
+* Output:
+* Notes:
+******************************************************************************/
+void uart_0_transmit(char data)
+{
+	/* Wait for empty transmit buffer */
+	while ( ! ( UCSR0A & (1<<UDRE0)));
+	/* Put data into buffer, sends the data */
+	UDR0 = data;
+}
+
+/******************************************************************************
+* Function:        void uart_0_write_string(char *c)
+* Description:     karaktersorozat kiküldése
+* Input:
+* Output:
+* Notes:
+******************************************************************************/
+void uart_0_write_string(char *c)
+{
+	char *p = c;
+	while(*p != 0) uart_0_transmit(*p++);
+}
