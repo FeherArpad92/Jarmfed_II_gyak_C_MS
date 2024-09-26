@@ -33,6 +33,7 @@
 ******************************************************************************/
 uint8_t task_10ms =FALSE, task_100ms=FALSE, task_500ms=FALSE;
 uint16_t timer_cnt=0;
+uint16_t ad_result;
 /******************************************************************************
 * External Variables
 ******************************************************************************/
@@ -45,8 +46,9 @@ void port_init(void);
 void timer_init(void);
 void external_int_init(void);
 void uart0_init(uint16_t baud);
-
-
+void adc_init(void);
+void uart0_send_char(char data);
+void uart_write_string(char *string);
 
 /******************************************************************************
 * Local Function Definitions
@@ -63,8 +65,8 @@ void port_init(void)
 	DDRA = 0xff;
 	PORTA = 0xff;
 	
-	DDRF = 0x0f;
-	PORTF = 0x0f;
+	DDRF = (1<<PF3) | (1<<PF2) | (1<<PF1) | (0<<PF0);
+	//PORTF = 0x0f;
 	
 	DDRD = (0<<PD0);
 	PORTD = (1<<PD0);
@@ -117,6 +119,48 @@ void uart0_init(uint16_t baud)
 }
 
 /******************************************************************************
+* Function:         void uart0_send_char(char data)
+* Description:      karakter küldése uarton
+* Input:
+* Output:
+* Notes:
+******************************************************************************/
+void uart0_send_char(char data)
+{
+	/* Wait for empty transmit buffer */
+	while ( ! ( UCSR0A & (1<<UDRE0)));
+	/* Put data into buffer, sends the data */
+	UDR0 = data;
+}
+
+/******************************************************************************
+* Function:         void uart_write_string(char *string)
+* Description:      karaktersorozat kiírása uartra
+* Input:
+* Output:
+* Notes:
+******************************************************************************/
+void uart_write_string(char *string)
+{
+	char *p = string;
+	while(*p != 0) uart0_send_char(*p++);
+}
+
+/******************************************************************************
+* Function:         void adc_init(void)
+* Description:      AD konverter felkonfigurálása
+* Input:
+* Output:
+* Notes:
+******************************************************************************/
+void adc_init(void)
+{
+	ADMUX = 0;
+	ADCSRA = (1<<ADEN) | (1<<ADSC) | (1<<ADIE) | (1<<ADPS2) | (1<<ADPS1) | (1<<ADPS0);
+}
+
+
+/******************************************************************************
 * Function:         int main(void)
 * Description:      main függvény
 * Input:
@@ -130,19 +174,28 @@ int main(void)
 	external_int_init();
 	lcd_init();
 	uart0_init(BAUD9600);
+	adc_init();
 	sei();
     /* Replace with your application code */
     while (1)
     {
 		if(task_10ms == TRUE)
 		{
-			PORTF ^= 0x01;
+			//PORTF ^= 0x01;
 			task_10ms = FALSE;
 		}
 		
 		if(task_100ms == TRUE)
 		{
+			ADCSRA |= (1<<ADSC); 
+			PORTA =ad_result;
 			PORTF ^= 0X02;
+			char write_string[50];
+			sprintf(write_string,"%4d",ad_result);
+			lcd_set_cursor_position(0);
+			lcd_write_string(write_string);
+			uart_write_string(write_string);
+			uart_write_string("\r\n");
 			task_100ms = FALSE;
 		}
 		
@@ -186,3 +239,7 @@ ISR(USART0_RX_vect)
 		lcd_write_char(c);
 }
 
+ISR(ADC_vect)
+{
+	ad_result = ADC;
+}
