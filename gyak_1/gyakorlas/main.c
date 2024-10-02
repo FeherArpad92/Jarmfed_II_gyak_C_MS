@@ -11,6 +11,7 @@
 #include <avr/delay.h>
 #include <avr/interrupt.h>
 #include <inttypes.h>
+#include <math.h>
 
 #include "lcd.h"
 #include "uart.h"
@@ -31,7 +32,9 @@
 * Global Variables
 ******************************************************************************/
 uint16_t timer_cnt=0;
-uint8_t task_10ms = FALSE, task_100ms = FALSE, task_500ms = FALSE;
+uint16_t time_0 = 0;
+uint16_t time_1 = 0;
+uint8_t task_1ms = FALSE, task_10ms = FALSE, task_100ms = FALSE, task_500ms = FALSE;
 uint16_t ad_result;
 /******************************************************************************
 * External Variables
@@ -41,7 +44,10 @@ uint16_t ad_result;
 * Local Function Declarations
 ******************************************************************************/
 void port_init(void);
-
+void write_voltage(uint16_t ad_value);
+void write_pi(void);
+void write_8bit(uint8_t num);
+void write_hexa_num(uint16_t num);
 /******************************************************************************
 * Local Function Definitions
 ******************************************************************************/
@@ -72,6 +78,78 @@ void port_init(void)
 }
 
 /******************************************************************************
+* Function:         void write_voltage(uint16_t ad_value)
+* Description:      feszültség kiírása az LCD kijelz?re
+* Input:
+* Output:
+* Notes:
+******************************************************************************/
+void write_voltage(uint16_t ad_value)
+{
+	//1. feladat
+	int voltage = ((uint32_t)ad_value * 5000) / 1024; // feszültség millivoltban
+	char string_for_write_ad[50];
+	sprintf(string_for_write_ad, "%d.%d", voltage/1000, voltage % 1000);
+	lcd_set_cursor_position(0);
+	lcd_write_string(string_for_write_ad);
+}
+
+/******************************************************************************
+* Function:         void write_pi(void)
+* Description:      PI kiírása 6 tizedesjegyig
+* Input:
+* Output:
+* Notes:
+******************************************************************************/
+void write_pi(void)
+{
+	char string_for_write_ad[50];
+	uint8_t int_part = (uint8_t)M_PI;
+	uint32_t float_part = (M_PI-int_part) * 1000000;
+	
+	sprintf(string_for_write_ad,"%d.%ld",int_part,float_part);
+	lcd_set_cursor_position(0);
+	lcd_write_string(string_for_write_ad);
+}
+/******************************************************************************
+* Function:         void write_8bit(uint8_t num)
+* Description:      kiírás bináris formátumban
+* Input:
+* Output:
+* Notes:
+******************************************************************************/
+void write_8bit(uint8_t num)
+{
+	lcd_set_cursor_position(0);
+	for(uint8_t i = 0; i<8; i++)
+	{
+		if(num & (1<<(7-i)))
+		{
+			lcd_write_char('1');
+		}
+		else
+		{
+			lcd_write_char('0');
+		}
+	}
+}
+
+/******************************************************************************
+* Function:         void write_hexa_num(uint16_t num)
+* Description:      kiírás hexadecimális formátumban
+* Input:
+* Output:
+* Notes:
+******************************************************************************/
+void write_hexa_num(uint16_t num)
+{
+	char string_for_write_ad[50];
+	sprintf(string_for_write_ad,"%X",num);
+	lcd_set_cursor_position(0);
+	lcd_write_string(string_for_write_ad);
+}
+
+/******************************************************************************
 * Function:         int main(void)
 * Description:      main függvény
 * Input:
@@ -91,6 +169,11 @@ int main(void)
     /* Replace with your application code */
     while (1) 
     {
+		if(task_1ms)
+		{
+			
+			task_1ms=FALSE;
+		}
 		if(task_10ms)
 		{
 			
@@ -99,14 +182,33 @@ int main(void)
 		if(task_100ms)
 		{
 			
-			//példa az ad érték lcd-re írására és uart-on pc felé küldésére
+			////példa az ad érték lcd-re írására és uart-on pc felé küldésére
+			//char string_for_write_ad[50];
+			//sprintf(string_for_write_ad,"%4d",ad_result);
+			//lcd_set_cursor_position(0);
+			//lcd_write_string(string_for_write_ad);
+			//uart_0_write_string(string_for_write_ad);
+			//uart_0_write_string("\r\n");
+			//ADCSRA |= (1<<ADSC); // új ad konverzió indítása
+			
+			//1. feladat
+			//write_voltage(ad_result);
+			//ADCSRA |= (1<<ADSC); // új ad konverzió indítása
+			
+			//2. feladat
+			//write_pi();
+			
+			//3. feladat
+			//write_8bit(0b01001001);
+			
+			//4. feladat
+			//write_hexa_num(0x32FF);
+			
+			//6. feladat
 			char string_for_write_ad[50];
-			sprintf(string_for_write_ad,"%4d",ad_result);
+			sprintf(string_for_write_ad,"%d %d %d",time_1-time_0, time_0, time_1);
 			lcd_set_cursor_position(0);
 			lcd_write_string(string_for_write_ad);
-			uart_0_write_string(string_for_write_ad);
-			uart_0_write_string("\r\n");
-			ADCSRA |= (1<<ADSC); // új ad konverzió indítása
 			
 			
 			
@@ -128,13 +230,18 @@ int main(void)
 ISR(TIMER0_COMP_vect) //timer CTC interrupt
 {
 	timer_cnt++;
-	if(timer_cnt % 1 == 0) task_10ms = TRUE;
-	if(timer_cnt % 10 == 0) task_100ms = TRUE;
-	if(timer_cnt % 50 == 0) task_500ms =TRUE;
+	task_1ms = TRUE;
+	if(timer_cnt % 10 == 0) task_10ms = TRUE;
+	if(timer_cnt % 100 == 0) task_100ms = TRUE;
+	if(timer_cnt % 500 == 0) task_500ms =TRUE;
 }
 
 ISR(INT0_vect) //extint 0 interrput
 {
+	if(time_0 != 0 && time_1 == 0) time_1 = timer_cnt;
+	if(time_0 == 0) time_0 = timer_cnt;
+	_delay_ms(20);
+	
 	PORTA = PORTA ^ 0x01; //
 }
 
