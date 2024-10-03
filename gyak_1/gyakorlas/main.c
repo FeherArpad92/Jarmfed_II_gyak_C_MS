@@ -23,7 +23,13 @@
 #define TRUE 1
 #define FALSE 0
 
+#define OSSZEADAS 1
+#define KIVONAS 2
+#define SZORZAS 3
+#define OSZTAS 4
 
+#define SZAM1 0
+#define SZAM2 1
 
 /******************************************************************************
 * Constants
@@ -33,9 +39,15 @@
 /******************************************************************************
 * Global Variables
 ******************************************************************************/
-uint8_t task_10ms =FALSE, task_100ms=FALSE, task_500ms=FALSE;
+uint8_t task_1ms=FALSE, task_10ms =FALSE, task_100ms=FALSE, task_500ms=FALSE;
 uint16_t timer_cnt=0;
 uint16_t ad_result;
+uint8_t pd0_pushed = FALSE;
+uint16_t time_1=0;
+uint16_t time_2=0;
+uint8_t szam1=0, szam2=0;
+uint8_t muveleti_jel=OSSZEADAS;
+uint8_t szam_valaszto = SZAM1;
 /******************************************************************************
 * External Variables
 ******************************************************************************/
@@ -67,8 +79,8 @@ void port_init(void)
 	DDRF = (1<<PF3) | (1<<PF2) | (1<<PF1) | (0<<PF0);
 	//PORTF = 0x0f;
 	
-	DDRD = (0<<PD0);
-	PORTD = (1<<PD0);
+	DDRD = (0<<PD0) | (0<<PD1);
+	PORTD = (1<<PD0) | (1<<PD1);
 	
 	DDRC = (1<<LCD_E) | (1<<LCD_RS) | (1<<LCD_D7) | (1<<LCD_D6) | (1<<LCD_D5) | (1<<LCD_D4);
 	PORTC = (0<<LCD_E) | (0<<LCD_RS) | (0<<LCD_D7) | (0<<LCD_D6) | (0<<LCD_D5) | (0<<LCD_D4);
@@ -102,6 +114,12 @@ int main(void)
     /* Replace with your application code */
     while (1)
     {
+		if(task_1ms == TRUE)
+		{
+
+			task_1ms = FALSE;
+		}
+		
 		if(task_10ms == TRUE)
 		{
 			//PORTF ^= 0x01;
@@ -110,6 +128,21 @@ int main(void)
 		
 		if(task_100ms == TRUE)
 		{
+			//6. feladat 
+			//if(pd0_pushed)
+			//{
+				//if(time_1!=0 && time_2==0) time_2=timer_cnt;
+				//if(time_1==0) time_1=timer_cnt;
+				//PORTA ^=0x01;
+				//pd0_pushed=FALSE;
+			//}
+			//
+			////6. feladat
+			//char write_string[50];
+			//sprintf(write_string,"%d",time_2-time_1);
+			//lcd_set_cursor_position(0);
+			//lcd_write_string(write_string);
+			
 			//ADCSRA |= (1<<ADSC);
 			//PORTA = ad_result;
 			//PORTF ^= 0X02;
@@ -134,21 +167,92 @@ int main(void)
 			//lcd_write_string(write_string);
 			
 			//3. feladat
-			lcd_set_cursor_position(0);
-			uint8_t valtozo = 0b01011011;
-			for(uint8_t i=0; i<8; i++)
+			//lcd_set_cursor_position(0);
+			//uint8_t valtozo = 0b01011011;
+			//for(uint8_t i=0; i<8; i++)
+			//{
+				//if(valtozo & (1<<(7-i))
+				//{
+					//lcd_write_char('1');
+				//}
+				//else
+				//{
+					//lcd_write_char('0');
+				//}
+			//}
+			
+			//4. feladat
+			//char write_string[50];
+			//uint16_t hexa_valtozo = 0x2FA2;
+			//sprintf(write_string,"%x",hexa_valtozo);
+			//lcd_set_cursor_position(0);
+			//lcd_write_string(write_string);
+			
+			
+			//8. feladat
+			if(!(PIND & (1<<PD1)))
 			{
-				if(valtozo & (1<<(7-i)))
+				szam_valaszto++;
+				if(szam_valaszto>1) szam_valaszto=0;
+			}
+			
+			char write_string[50];
+			
+			switch(szam_valaszto)
+			{
+				case SZAM1:
 				{
-					lcd_write_char('1');
+					szam1=ad_result/4;
+					break;
 				}
-				else
+				case SZAM2:
 				{
-					lcd_write_char('0');
+					szam2=ad_result/4;
+					break;
 				}
 			}
 			
 			
+			
+			switch(muveleti_jel)
+			{
+				case OSSZEADAS:
+				{
+					sprintf(write_string,"%3d+%3d=%3d",szam1,szam2,szam1+szam2);
+					break;
+				}
+				case KIVONAS:
+				{
+					sprintf(write_string,"%3d-%3d=%3d",szam1,szam2,szam1-szam2);
+					break;
+				}
+				case SZORZAS:
+				{
+					sprintf(write_string,"%3d*%3d=%5d",szam1,szam2,szam1*szam2);
+					break;
+				}
+				case OSZTAS:
+				{
+					float eredmeny = szam1/szam2;
+					
+					break;
+				}
+			}
+			
+			
+			
+			
+			lcd_set_cursor_position(0);
+			lcd_write_string(write_string);
+			
+			if(pd0_pushed)
+			{
+				muveleti_jel++;
+				if(muveleti_jel>4) muveleti_jel =1;
+				pd0_pushed=FALSE;
+			}
+			
+			ADCSRA |= (1<<ADSC);
 			
 			
 			
@@ -178,15 +282,17 @@ int main(void)
 ISR(TIMER0_COMP_vect) //timer CTC interrupt
 {
 	timer_cnt++;
-	if((timer_cnt % 1) == 0) task_10ms = TRUE;
-	if((timer_cnt % 10) == 0) task_100ms =TRUE;
-	if((timer_cnt % 50) == 0) task_500ms = TRUE;
+	task_1ms = TRUE;
+	if((timer_cnt % 10) == 0) task_10ms = TRUE;
+	if((timer_cnt % 100) == 0) task_100ms =TRUE;
+	if((timer_cnt % 500) == 0) task_500ms = TRUE;
 }
 
 ISR(INT0_vect) //ext 0 interrupt
 {
-	
-	PORTA = PORTA ^ 0x01;
+	//_delay_ms(40);
+	pd0_pushed = TRUE;
+	//PORTA = PORTA ^ 0x01;
 }
 
 ISR(USART0_RX_vect)
