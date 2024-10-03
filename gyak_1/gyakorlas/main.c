@@ -102,15 +102,26 @@ int main(void)
 		
 		if(task_100ms == TRUE)
 		{
-			ADCSRA |= (1<<ADSC);
-			PORTA = ad_result;
-			PORTF ^= 0X02;
+			//ADCSRA |= (1<<ADSC);
+			//PORTA = ad_result;
+			//PORTF ^= 0X02;
+			//char write_string[50];
+			//sprintf(write_string,"%4d",ad_result);
+			//lcd_set_cursor_position(0);
+			//lcd_write_string(write_string);
+			//uart_write_string(write_string);
+			//uart_write_string("\r\n");
+			
+			//1. feladat
 			char write_string[50];
-			sprintf(write_string,"%4d",ad_result);
+			int voltage = ((uint32_t)ad_result*5000) / 1023;
+			sprintf(write_string,"%d.%d",voltage/1000, voltage % 1000);
 			lcd_set_cursor_position(0);
 			lcd_write_string(write_string);
-			uart_write_string(write_string);
-			uart_write_string("\r\n");
+			ADCSRA |= (1<<ADSC);
+			
+			
+			
 			task_100ms = FALSE;
 		}
 		
