@@ -7,6 +7,7 @@
 ******************************************************************************/
 #include <avr/io.h>
 #include <avr/interrupt.h>
+#include <math.h>
 
 #define F_CPU 8000000UL 
 #include <avr/delay.h>
@@ -44,7 +45,7 @@ uint16_t ad_result;
 * Local Function Declarations
 ******************************************************************************/
 void port_init(void);
-
+void print_voltage(uint16_t ad_r);
 
 
 
@@ -73,7 +74,14 @@ void port_init(void)
 	PORTC = (0<<LCD_E) | (0<<LCD_RS) | (0<<LCD_D7) | (0<<LCD_D6) | (0<<LCD_D5) | (0<<LCD_D4);
 }
 
-
+void print_voltage(uint16_t ad_r)
+{
+	char write_string[50];
+	int voltage = ((uint32_t)ad_r*5000) / 1023;
+	sprintf(write_string,"%d.%03d",voltage/1000, voltage % 1000);
+	lcd_set_cursor_position(0);
+	lcd_write_string(write_string);
+}
 
 /******************************************************************************
 * Function:         int main(void)
@@ -113,12 +121,37 @@ int main(void)
 			//uart_write_string("\r\n");
 			
 			//1. feladat
-			char write_string[50];
-			int voltage = ((uint32_t)ad_result*5000) / 1023;
-			sprintf(write_string,"%d.%d",voltage/1000, voltage % 1000);
+			
+			//print_voltage(ad_result);
+			//ADCSRA |= (1<<ADSC);
+			
+			//2. feladat
+			//char write_string[50];
+			//uint8_t int_part = (uint8_t)M_PI;
+			//uint32_t float_part = (M_PI-int_part)*1000000;
+			//sprintf(write_string,"%d.%ld",int_part,float_part);
+			//lcd_set_cursor_position(0);
+			//lcd_write_string(write_string);
+			
+			//3. feladat
 			lcd_set_cursor_position(0);
-			lcd_write_string(write_string);
-			ADCSRA |= (1<<ADSC);
+			uint8_t valtozo = 0b01011011;
+			for(uint8_t i=0; i<8; i++)
+			{
+				if(valtozo & (1<<(7-i)))
+				{
+					lcd_write_char('1');
+				}
+				else
+				{
+					lcd_write_char('0');
+				}
+			}
+			
+			
+			
+			
+			
 			
 			
 			
