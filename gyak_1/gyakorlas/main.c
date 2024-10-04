@@ -23,6 +23,14 @@
 #define FALSE 0
 #define TRUE 1
 
+#define OSSZEADAS 1
+#define KIVONAS 2
+#define SZORZAS 3
+#define OSZTAS 4
+
+#define SZAM1 1
+#define SZAM2 2
+
 /******************************************************************************
 * Constants
 ******************************************************************************/
@@ -36,6 +44,11 @@ uint16_t time_0 = 0;
 uint16_t time_1 = 0;
 uint8_t task_1ms = FALSE, task_10ms = FALSE, task_100ms = FALSE, task_500ms = FALSE;
 uint16_t ad_result;
+
+uint8_t szam_1;
+uint8_t szam_2;
+uint8_t muveleti_jel = OSSZEADAS;
+uint8_t szam_valaszto = SZAM1;
 /******************************************************************************
 * External Variables
 ******************************************************************************/
@@ -205,10 +218,55 @@ int main(void)
 			//write_hexa_num(0x32FF);
 			
 			//6. feladat
-			char string_for_write_ad[50];
-			sprintf(string_for_write_ad,"%d %d %d",time_1-time_0, time_0, time_1);
+			//char string_for_write_ad[50];
+			//sprintf(string_for_write_ad,"%d %d %d",time_1-time_0, time_0, time_1);
+			//lcd_set_cursor_position(0);
+			//lcd_write_string(string_for_write_ad);
+			
+			//8. feladat
+			char string_for_write[50];
+			switch(muveleti_jel)
+			{
+				case OSSZEADAS:
+				{
+					sprintf(string_for_write,"%3d+%3d=%3d",szam_1,szam_2,szam_1+szam_2);
+					break;
+				}
+				case KIVONAS:
+				{
+					
+					break;
+				}
+				case SZORZAS:
+				{
+					
+					break;
+				}
+				case OSZTAS:
+				{
+					
+					break;
+				}
+			}
+			
 			lcd_set_cursor_position(0);
-			lcd_write_string(string_for_write_ad);
+			lcd_write_string(string_for_write);
+			
+			switch(szam_valaszto)
+			{
+				case SZAM1:
+				{
+					szam_1 = ad_result/4;
+					break;
+				}
+				case SZAM2:
+				{
+					szam_2 = ad_result/4;
+					break;
+				}
+			}
+			
+			ADCSRA |= (1<<ADSC); // új ad konverzió indítása
 			
 			
 			
@@ -238,8 +296,13 @@ ISR(TIMER0_COMP_vect) //timer CTC interrupt
 
 ISR(INT0_vect) //extint 0 interrput
 {
-	if(time_0 != 0 && time_1 == 0) time_1 = timer_cnt;
-	if(time_0 == 0) time_0 = timer_cnt;
+	//6. feladat
+	//if(time_0 != 0 && time_1 == 0) time_1 = timer_cnt;
+	//if(time_0 == 0) time_0 = timer_cnt;
+	szam_valaszto++;
+	if(szam_valaszto>SZAM2) szam_valaszto = SZAM1;
+	
+	
 	_delay_ms(20);
 	
 	PORTA = PORTA ^ 0x01; //
