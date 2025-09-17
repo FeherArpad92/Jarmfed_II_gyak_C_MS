@@ -29,6 +29,7 @@
 uint16_t timer_cnt=0;
 uint8_t timer_task_10ms=0, timer_task_100ms=0, timer_task_500ms=0, timer_task_1s=0;
 uint8_t PB0_pushed = 0, PD0_re_enable_cnt = 0;
+uint16_t ad_value = 0;
 
 /******************************************************************************
 * External Variables
@@ -40,6 +41,7 @@ uint8_t PB0_pushed = 0, PD0_re_enable_cnt = 0;
 void port_init(void);
 void timer_init(void);
 void external_int_init(void);
+void ad_init(void);
 
 
 /******************************************************************************
@@ -55,13 +57,14 @@ void external_int_init(void);
 ******************************************************************************/
 void port_init(void)
 {
-	
 	DDRF = (0<<PF0)| (1<<PF1) | (1<<PF2) | (1<<PF3);
 	PORTF = (0<<PF0)| (1<<PF1) | (1<<PF2) | (1<<PF3);
 	
-	
 	DDRA = 0xff;
 	PORTA = 0x00;
+	
+	DDRE = 0xff;
+	PORTE = 0x00;
 	
 	DDRD = 0x00; //PD0 extint
 	PORTD = 0x01; //PD0 extint
@@ -94,6 +97,13 @@ void external_int_init(void)
 	EIMSK = (1<<INT0);
 }
 
+void ad_init(void)
+{
+	ADMUX = 0;
+	ADCSRA = (1<<ADEN) | (1<<ADSC) | (1<<ADIE);
+	ADCSRB = 0;
+}
+
 /******************************************************************************
 * Function:         int main(void)
 * Description:      main function
@@ -106,6 +116,7 @@ int main(void)
 	port_init();
 	timer_init();
 	external_int_init();
+	ad_init();
 	sei();
 	
 	//V?gtelen ciklus
@@ -116,14 +127,16 @@ int main(void)
 		{
 			if((PINB & (1<<PB0)) == 0 && PB0_pushed == 0)
 			{
-				PORTA ^=0x01;
+				PORTE ^=0x01;
 				PB0_pushed = 1;
 			}
 			if((PINB & (1<<PB0)) == (1<<PB0) && PB0_pushed == 1) PB0_pushed = 0;
 			
 			if(PD0_re_enable_cnt<PD0_ENA_DELAY) PD0_re_enable_cnt += 10; //perg?smentes?t?s
 			
-			PORTF ^= (1<<PF0);
+			//PORTF ^= (1<<PF0);
+			PORTA = ad_value>>2;
+			ADCSRA |= (1<<ADSC);
 			timer_task_10ms = 0;
 		}
 		
@@ -145,7 +158,6 @@ int main(void)
 			PORTF ^= (1<<PF3);
 			timer_task_1s=0;
 		}
-
 	}
 }
 /******************************************************************************
@@ -164,8 +176,12 @@ ISR(INT0_vect) //external interrupt
 {
 	if(PD0_re_enable_cnt == PD0_ENA_DELAY) //perg?smentes?t?s logika
 	{
-		PORTA ^=0x02;
+		PORTE ^=0x02;
 		PD0_re_enable_cnt=0;
 	}
-	
+}
+
+ISR(ADC_vect) //AD megszakítás
+{
+	ad_value = ADC;
 }
