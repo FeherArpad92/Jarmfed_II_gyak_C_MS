@@ -18,6 +18,7 @@
 #define TRUE 1
 #define FALSE 0
 
+#define PD0_ENA_DELAY 80
 
 /******************************************************************************
 * Constants
@@ -29,6 +30,8 @@
 ******************************************************************************/
 uint16_t timer_cnt=0;
 uint8_t timer_task_10ms = FALSE, timer_task_100ms = FALSE, timer_task_500ms = FALSE, timer_task_1s = FALSE;
+uint8_t PD0_re_enable_cnt=0;
+uint8_t PB0_pushed = FALSE;
 
 /******************************************************************************
 * External Variables
@@ -40,6 +43,7 @@ uint8_t timer_task_10ms = FALSE, timer_task_100ms = FALSE, timer_task_500ms = FA
 ******************************************************************************/
 void timer_init(void);
 void port_init(void);
+void external_int_init(void);
 
 /******************************************************************************
 * Local Function Definitions
@@ -47,7 +51,14 @@ void port_init(void);
 
 void port_init(void)
 {
+	DDRA = 0xff;
 	DDRF = (1<<PF0) | (1<<PF1) | (1<<PF2) | (1<<PF3);
+	
+	DDRD = (0<<PD0);
+	PORTD = (1<<PD0);
+	
+	DDRB = (0<<PB0);
+	PORTB = (1<<PB0);
 }
 
 void timer_init(void)
@@ -56,6 +67,12 @@ void timer_init(void)
 	TCCR0A = (0<<WGM00) | (1<<WGM01) | (1<<CS02) | (0<<CS01) | (1<<CS00);
 	OCR0A = 77;
 	TIMSK0 = (1<<OCIE0A);
+}
+
+void external_int_init(void)
+{
+	EICRA = (1<<ISC01) | (0<<ISC00);
+	EIMSK = (1<<INT0);
 }
 
 /******************************************************************************
@@ -69,13 +86,29 @@ int main(void)
 {
 	port_init();
 	timer_init();
+	external_int_init();
 	sei();
+	
 	/* Replace with your application code */
 	
 	while(1)
 	{
 		if(timer_task_10ms)
 		{
+			if((PINB & (1<<PB0)) == 0 && PB0_pushed == FALSE)
+			{
+				PORTA ^=0x01;
+				PB0_pushed = TRUE;
+			}
+			
+			if((PINB & (1<<PB0)) == (1<<PB0) && PB0_pushed == TRUE)
+			{
+				PB0_pushed=FALSE;
+			}
+			
+			
+			if(PD0_re_enable_cnt<PD0_ENA_DELAY) PD0_re_enable_cnt += 10;
+			
 			PORTF ^= (1<<PF0);
 			timer_task_10ms=FALSE;
 		}
@@ -110,6 +143,16 @@ ISR(TIMER0_COMP_vect)
 	if((timer_cnt % 10) == 0) timer_task_100ms = TRUE;
 	if((timer_cnt % 50) == 0) timer_task_500ms = TRUE;
 	if((timer_cnt % 100) == 0) timer_task_1s = TRUE;
+}
+
+ISR(INT0_vect)
+{
+	if(PD0_re_enable_cnt == PD0_ENA_DELAY)
+	{
+		PORTA ^=0xff;
+		PD0_re_enable_cnt = 0;
+	}
+	
 }
 
 
