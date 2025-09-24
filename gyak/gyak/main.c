@@ -12,6 +12,8 @@
 #define F_CPU 8000000UL
 #include <avr/delay.h>
 #include <stdio.h>
+#include "peripherals.h"
+#include "lcd.h"
 /******************************************************************************
 * Macros
 ******************************************************************************/
@@ -42,11 +44,7 @@ uint16_t ad_value = 0;
 /******************************************************************************
 * Local Function Declarations
 ******************************************************************************/
-void timer_init(void);
 void port_init(void);
-void external_interrupt_init(void);
-void ad_init(void);
-
 
 /******************************************************************************
 * Local Function Definitions
@@ -63,26 +61,7 @@ void port_init(void)
 	PORTB = (1<<PB0);
 }
 
-void timer_init(void)
-{
-	TCCR0A = (0<<WGM00) | (1<<WGM01) | (1<<CS02) | (0<<CS01) | (1<<CS00);
-	OCR0A = 77;
-	TIMSK0 = (1<<OCIE0A);
-}
 
-void external_interrupt_init(void)
-{
-	EICRA = (0<<ISC00) | (1<<ISC01);
-	EIMSK = (1<<INT0);
-}
-
-void ad_init(void)
-{
-	ADMUX = 0;
-	ADCSRA = (1<<ADPS0) | (1<<ADPS1) | (1<<ADPS2) | (1<<ADEN) | (1<<ADIE) | (1<<ADSC);
-	ADCSRB = 0;
-	
-}
 
 /******************************************************************************
 * Function:         int main(void)
@@ -97,6 +76,7 @@ int main(void)
 	timer_init();
 	external_interrupt_init();
 	ad_init();
+	lcd_init();
 	sei();
 	/* Replace with your application code */
 	while(1)
