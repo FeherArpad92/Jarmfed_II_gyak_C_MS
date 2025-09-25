@@ -32,6 +32,7 @@ uint16_t timer_cnt=0;
 uint8_t timer_task_10ms = FALSE, timer_task_100ms = FALSE, timer_task_500ms = FALSE, timer_task_1s = FALSE;
 uint8_t PD0_re_enable_cnt=0;
 uint8_t PB0_pushed = FALSE;
+uint16_t adc_result=0;
 
 /******************************************************************************
 * External Variables
@@ -44,6 +45,7 @@ uint8_t PB0_pushed = FALSE;
 void timer_init(void);
 void port_init(void);
 void external_int_init(void);
+void ad_init(void);
 
 /******************************************************************************
 * Local Function Definitions
@@ -52,7 +54,7 @@ void external_int_init(void);
 void port_init(void)
 {
 	DDRA = 0xff;
-	DDRF = (1<<PF0) | (1<<PF1) | (1<<PF2) | (1<<PF3);
+	DDRF = (0<<PF0) | (1<<PF1) | (1<<PF2) | (1<<PF3);
 	
 	DDRD = (0<<PD0);
 	PORTD = (1<<PD0);
@@ -75,6 +77,12 @@ void external_int_init(void)
 	EIMSK = (1<<INT0);
 }
 
+void ad_init(void)
+{
+	ADMUX=0;
+	ADCSRA= (1<<ADEN) | (1<<ADIE) | (1<<ADPS2) | (1<<ADPS1) | (1<<ADPS0);
+}
+
 /******************************************************************************
 * Function:         int main(void)
 * Description:      main function
@@ -87,6 +95,7 @@ int main(void)
 	port_init();
 	timer_init();
 	external_int_init();
+	ad_init();
 	sei();
 	
 	/* Replace with your application code */
@@ -109,12 +118,14 @@ int main(void)
 			
 			if(PD0_re_enable_cnt<PD0_ENA_DELAY) PD0_re_enable_cnt += 10;
 			
-			PORTF ^= (1<<PF0);
+			//PORTF ^= (1<<PF0);
 			timer_task_10ms=FALSE;
 		}
 		
 		if(timer_task_100ms)
 		{
+			ADCSRA |= (1<<ADSC);
+			PORTA = adc_result>>2;
 			PORTF ^= (1<<PF1);
 			timer_task_100ms=FALSE;
 		}
@@ -152,7 +163,11 @@ ISR(INT0_vect)
 		PORTA ^=0xff;
 		PD0_re_enable_cnt = 0;
 	}
-	
+}
+
+ISR(ADC_vect)
+{
+	adc_result = ADC;
 }
 
 
