@@ -149,7 +149,19 @@
     </ToolchainSettings>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="lcd.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="lcd.h">
+      <SubType>compile</SubType>
+    </Compile>
     <Compile Include="main.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="peripherals.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="peripherals.c">
       <SubType>compile</SubType>
     </Compile>
   </ItemGroup>
