@@ -3,6 +3,7 @@
 ******************************************************************************/
 #include "peripherals.h"
 #include <avr/io.h>
+#include <inttypes.h>
 
 /******************************************************************************
 * Macros
@@ -78,6 +79,16 @@ void ad_init(void)
 	ADCSRA = (1<<ADPS0) | (1<<ADPS1) | (1<<ADPS2) | (1<<ADEN) | (1<<ADIE) | (1<<ADSC);
 	ADCSRB = 0;
 	
+}
+
+void uart_0_init(uint16_t baud)
+{
+	UBRR0H = (uint8_t)(baud>>8);
+	UBRR0L = (uint8_t)(baud);
+	
+	UCSR0A =0;
+	UCSR0B = (1<<RXEN) | (1<<TXEN) | (1<<RXCIE0);
+	UCSR0C = (1<<UCSZ1) | (1<<UCSZ0);
 }
 
 

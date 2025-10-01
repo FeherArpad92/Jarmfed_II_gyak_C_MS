@@ -77,6 +77,8 @@ int main(void)
 	external_interrupt_init();
 	ad_init();
 	lcd_init();
+	
+	uart_0_init(51);
 	sei();
 	/* Replace with your application code */
 	while(1)
@@ -97,6 +99,13 @@ int main(void)
 		}
 		if(timer_task_100ms)
 		{
+			char string_for_write_ad[50];
+			int voltage = ((uint32_t)ad_value*5000)/1024;
+			sprintf(string_for_write_ad, "%d.%03d",voltage/1000,voltage % 1000);
+			
+			lcd_set_cursor_position(0);
+			lcd_write_string(string_for_write_ad);
+			
 			ADCSRA |= (1<<ADSC);
 			PORTA = ad_value>>2;
 			
@@ -141,4 +150,9 @@ ISR(INT0_vect)
 ISR(ADC_vect)
 {
 	ad_value = ADC;
+}
+
+ISR(USART0_RX_vect)
+{
+	char c= UDR0;
 }

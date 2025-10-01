@@ -4,7 +4,7 @@
 /******************************************************************************
 * Include files
 ******************************************************************************/
-
+#include <inttypes.h>
 
 /******************************************************************************
 * Types
@@ -25,6 +25,9 @@
 * Global Function Declarations
 ******************************************************************************/
 void lcd_init(void);
-
+void lcd_write_char(char c);
+void lcd_write_string(char *str);
+void lcd_set_cursor_position(uint8_t pos);
+void lcd_clear_display(void);
 
 #endif /* LCD_H_ */

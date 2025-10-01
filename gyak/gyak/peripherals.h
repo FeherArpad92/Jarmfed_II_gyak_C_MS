@@ -4,7 +4,7 @@
 /******************************************************************************
 * Include files
 ******************************************************************************/
-
+#include <inttypes.h>
 
 /******************************************************************************
 * Types
@@ -28,6 +28,7 @@
 void timer_init(void);
 void external_interrupt_init(void);
 void ad_init(void);
+void uart_0_init(uint16_t baud);
 
 
 #endif /* PERIPHERALS_H_ */
