@@ -5,6 +5,7 @@
 #include <avr/io.h>
 #define F_CPU 8000000UL
 #include <avr/delay.h>
+#include <inttypes.h>
 /******************************************************************************
 * Macros
 ******************************************************************************/
@@ -102,8 +103,44 @@ void lcd_init(void)
 	lcd_enable_pulse();
 	
 	_delay_ms(10);
-	
-	
+}
+
+void lcd_write_char(char c)
+{
+	_delay_us(40);
+	PORTC = (c & 0xF0) | (1<<LCD_RS);
+	lcd_enable_pulse();
+	PORTC = ((c & 0x0F)<<4) | (1<<LCD_RS);
+	lcd_enable_pulse();
+}
+
+void lcd_write_string(char *str)
+{
+	char *p = str;
+	while(*p != 0) lcd_write_char(*p++);
+}
+
+void lcd_set_cursor_position(uint8_t pos)
+{
+	_delay_us(40);
+	if(pos<67)
+	{
+		pos = ((1<<LCD_D7) | pos);
+		PORTC = (pos & 0xF0) | (0<<LCD_RS);
+		lcd_enable_pulse();
+		PORTC = ((pos & 0x0F)<<4) | (0<<LCD_RS);
+		lcd_enable_pulse();
+	}
+}
+
+void lcd_clear_display(void)
+{
+	_delay_us(40);
+	PORTC = 0x00 | (0<<LCD_RS);
+	lcd_enable_pulse();
+	PORTC = (0x01<<4) | (0<<LCD_RS);
+	lcd_enable_pulse();
+	_delay_ms(2);
 }
 
 

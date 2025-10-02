@@ -79,6 +79,7 @@ int main(void)
 	external_int_init();
 	ad_init();
 	lcd_init();
+	uart_0_init(51); //9600 baud
 	sei();
 	
 	/* Replace with your application code */
@@ -107,8 +108,18 @@ int main(void)
 		
 		if(timer_task_100ms)
 		{
+			char string_for_write_ad[50];
+			
 			ADCSRA |= (1<<ADSC);
 			PORTA = adc_result>>2;
+			
+			int voltage = ((uint32_t)adc_result * 5000) /1024; // mV
+			
+			sprintf(string_for_write_ad, "%d.%03d V",voltage/1000, voltage % 1000);
+			lcd_set_cursor_position(0);
+			lcd_write_string(string_for_write_ad);
+			
+			
 			PORTF ^= (1<<PF1);
 			timer_task_100ms=FALSE;
 		}
@@ -120,6 +131,9 @@ int main(void)
 		}
 		if(timer_task_1s)
 		{
+			//lcd_clear_display();
+			//lcd_set_cursor_position(0);
+			//lcd_write_string("jhasdvfhdsa");
 			PORTF ^= (1<<PF3);
 			timer_task_1s=FALSE;
 		}
@@ -154,6 +168,9 @@ ISR(ADC_vect)
 }
 
 
-
+ISR(USART0_RX_vect)
+{
+	char c = UDR0;
+}
 
 
