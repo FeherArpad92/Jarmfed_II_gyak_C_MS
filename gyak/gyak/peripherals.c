@@ -81,6 +81,13 @@ void ad_init(void)
 	
 }
 
+/******************************************************************************
+* Function: void uart_0_init(uint16_t baud)
+* Description: UART 0 inicializálása
+* Input:
+* Output:
+* Notes:
+******************************************************************************/
 void uart_0_init(uint16_t baud)
 {
 	UBRR0H = (uint8_t)(baud>>8);
