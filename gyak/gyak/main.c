@@ -114,11 +114,9 @@ int main(void)
 			PORTA = adc_result>>2;
 			
 			int voltage = ((uint32_t)adc_result * 5000) /1024; // mV
-			
 			sprintf(string_for_write_ad, "%d.%03d V",voltage/1000, voltage % 1000);
 			lcd_set_cursor_position(0);
 			lcd_write_string(string_for_write_ad);
-			
 			
 			PORTF ^= (1<<PF1);
 			timer_task_100ms=FALSE;

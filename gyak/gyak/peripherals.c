@@ -78,6 +78,13 @@ void ad_init(void)
 	ADCSRA= (1<<ADEN) | (1<<ADIE) | (1<<ADPS2) | (1<<ADPS1) | (1<<ADPS0);
 }
 
+/******************************************************************************
+* Function:   void uart_0_init(uint16_t baud)
+* Description: UART 0 inicializálása
+* Input:
+* Output:
+* Notes:
+******************************************************************************/
 void uart_0_init(uint16_t baud)
 {
 	UBRR0H = (unsigned char) (baud>>8);
