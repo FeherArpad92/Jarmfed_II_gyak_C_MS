@@ -45,6 +45,10 @@ uint16_t ad_value = 0;
 * Local Function Declarations
 ******************************************************************************/
 void port_init(void);
+void write_voltage(uint16_t v);
+void write_float(float tort_sz);
+void write_8bit(uint8_t num);
+void write_hexa_num(uint16_t num);
 
 /******************************************************************************
 * Local Function Definitions
@@ -59,6 +63,55 @@ void port_init(void)
 	
 	DDRB = (0<<PB0);
 	PORTB = (1<<PB0);
+}
+
+void write_voltage(uint16_t v)
+{
+	char string_for_write_ad[50];
+	int voltage = ((uint32_t)v*5000)/1024;
+	sprintf(string_for_write_ad, "%d.%03d",voltage/1000,voltage % 1000);
+	
+	lcd_set_cursor_position(0);
+	lcd_write_string(string_for_write_ad);
+}
+
+void write_float(float tort_sz)
+{
+	char string_for_write[50];
+	uint16_t egesz = tort_sz;
+	uint32_t tort = (tort_sz-egesz)*1000000;
+	
+	sprintf(string_for_write, "%d.%06ld",egesz,tort);
+	
+	lcd_set_cursor_position(0);
+	lcd_write_string(string_for_write);
+	
+	
+}
+
+void write_8bit(uint8_t num)
+{
+	lcd_set_cursor_position(0);
+	for(int i=0;i<8;i++)
+	{
+		if(num & (1<<(7-i)))
+		{
+			lcd_write_char('1');
+		}
+		else
+		{
+			lcd_write_char('0');
+		}
+	}
+	
+}
+
+void write_hexa_num(uint16_t num)
+{
+	char string_for_write[50];
+	sprintf(string_for_write,"%X",num);
+	lcd_set_cursor_position(0);
+	lcd_write_string(string_for_write);
 }
 
 
@@ -99,12 +152,11 @@ int main(void)
 		}
 		if(timer_task_100ms)
 		{
-			char string_for_write_ad[50];
-			int voltage = ((uint32_t)ad_value*5000)/1024;
-			sprintf(string_for_write_ad, "%d.%03d",voltage/1000,voltage % 1000);
 			
-			lcd_set_cursor_position(0);
-			lcd_write_string(string_for_write_ad);
+			//write_voltage(ad_value);
+			//write_float(M_PI);
+			//write_8bit(0b01000111);
+			write_hexa_num(0x143F);
 			
 			ADCSRA |= (1<<ADSC);
 			PORTA = ad_value>>2;
