@@ -45,7 +45,10 @@ uint16_t adc_result=0;
 * Local Function Declarations
 ******************************************************************************/
 void timer_init(void);
-
+void write_voltage(uint16_t ad_res);
+void write_pi(float tort);
+void write_8bit(uint8_t num);
+void write_hexa_num(uint16_t num);
 
 /******************************************************************************
 * Local Function Definitions
@@ -63,6 +66,61 @@ void port_init(void)
 	PORTB = (1<<PB0);
 }
 
+
+void write_voltage(uint16_t ad_res)
+{
+	char string_for_write_ad[50];
+	int voltage = ((uint32_t)ad_res * 5000) /1024; // mV
+	sprintf(string_for_write_ad, "%d.%03d V",voltage/1000, voltage % 1000);
+	lcd_set_cursor_position(0);
+	lcd_write_string(string_for_write_ad);
+}
+
+void write_pi(float tort)
+{
+	char string_for_write[50];
+	uint8_t int_part = tort;
+	uint32_t float_part = (tort-int_part)*1000000;
+	sprintf(string_for_write,"%d.%ld",int_part,float_part);
+	lcd_set_cursor_position(0);
+	lcd_write_string(string_for_write);
+}
+
+void write_8bit(uint8_t num)
+{
+	lcd_set_cursor_position(0);
+	uint8_t temp =num;
+	for(uint8_t i=0;i<8;i++)
+	{
+		//lcd_set_cursor_position(7-i);
+		//if((temp % 2)==0)
+		//{
+			//lcd_write_char('0');
+		//}
+		//else
+		//{
+			//lcd_write_char('1');
+		//}
+		//temp = temp/2;
+		
+		if(num & (1<<(7-i)))
+		{
+			lcd_write_char('1');
+		}
+		else
+		{
+			lcd_write_char('0');
+		}
+	}
+}
+
+void write_hexa_num(uint16_t num)
+{
+	char string_for_write[50];
+	sprintf(string_for_write,"%x",num);
+	lcd_set_cursor_position(0);
+	lcd_write_string(string_for_write);
+}
 
 
 /******************************************************************************
@@ -108,15 +166,16 @@ int main(void)
 		
 		if(timer_task_100ms)
 		{
-			char string_for_write_ad[50];
+			
 			
 			ADCSRA |= (1<<ADSC);
 			PORTA = adc_result>>2;
 			
-			int voltage = ((uint32_t)adc_result * 5000) /1024; // mV
-			sprintf(string_for_write_ad, "%d.%03d V",voltage/1000, voltage % 1000);
-			lcd_set_cursor_position(0);
-			lcd_write_string(string_for_write_ad);
+			//write_voltage(adc_result);
+			//write_pi(M_PI);
+			//write_8bit(124);
+			write_hexa_num(0x1F78);
+			
 			
 			PORTF ^= (1<<PF1);
 			timer_task_100ms=FALSE;
