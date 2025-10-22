@@ -35,6 +35,8 @@ uint8_t timer_task_10ms=0, timer_task_100ms=0, timer_task_500ms=0, timer_task_1s
 uint8_t PD0_re_enable_cnt=0;
 uint8_t PB0_pushed=0;
 uint16_t ad_value = 0;
+uint16_t time_0 = 0;
+uint16_t time_1 = 0;
 
 /******************************************************************************
 * External Variables
@@ -156,10 +158,15 @@ int main(void)
 			//write_voltage(ad_value);
 			//write_float(M_PI);
 			//write_8bit(0b01000111);
-			write_hexa_num(0x143F);
+			//write_hexa_num(0x143F);
 			
 			ADCSRA |= (1<<ADSC);
-			PORTA = ad_value>>2;
+			//PORTA = ad_value>>2;
+			
+			char string_for_write[50];
+			sprintf(string_for_write, "%d %d %d", time_0,time_1,(time_1-time_0));
+			lcd_set_cursor_position(0);
+			lcd_write_string(string_for_write);
 			
 			PORTF ^= (1<<PF1);
 			timer_task_100ms=FALSE;
@@ -184,16 +191,19 @@ int main(void)
 ISR(TIMER0_COMP_vect)
 {
 	timer_cnt++;
-	if((timer_cnt % 1) == 0) timer_task_10ms = TRUE;
-	if((timer_cnt % 10) == 0) timer_task_100ms = TRUE;
-	if((timer_cnt % 50) == 0) timer_task_500ms = TRUE;
-	if((timer_cnt % 100) == 0) timer_task_1s = TRUE;
+	if((timer_cnt % 10) == 0) timer_task_10ms = TRUE;
+	if((timer_cnt % 100) == 0) timer_task_100ms = TRUE;
+	if((timer_cnt % 500) == 0) timer_task_500ms = TRUE;
+	if((timer_cnt % 1000) == 0) timer_task_1s = TRUE;
 }
 
 ISR(INT0_vect)
 {
 	if(PD0_re_enable_cnt == PD0_ENA_DELAY)
 	{
+		if(time_0 != 0 && time_1 == 0) time_1=timer_cnt;
+		if(time_0 == 0) time_0 = timer_cnt;
+		
 		PORTA ^=0xff;
 		PD0_re_enable_cnt=0;
 	}
