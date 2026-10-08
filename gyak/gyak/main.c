@@ -44,11 +44,6 @@ volatile uint16_t adc_result=0;
 /******************************************************************************
 * Local Function Declarations
 ******************************************************************************/
-void timer_init(void);
-void write_voltage(uint16_t ad_res);
-void write_pi(float tort);
-void write_8bit(uint8_t num);
-void write_hexa_num(uint16_t num);
 
 /******************************************************************************
 * Local Function Definitions
